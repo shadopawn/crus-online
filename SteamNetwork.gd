@@ -90,8 +90,10 @@ func rpc_all_clients(caller: Node, method: String, args: Array = [], reliable: b
 # SERVER ONLY (OWNERSHIP TBD)
 func remote_set(caller: Node, property: String, value, reliable: bool = true):
 	# probably need to check basic ownership here, but for now its server only
-	for peer in _peers.values(): 
-		_rset(peer, caller, property, value, reliable)
+	for peer in _peers.values():
+		# Like Godot's rset, don't set it on ourselves; callers already have the value
+		if peer.steam_id != _my_steam_id:
+			_rset(peer, caller, property, value, reliable)
 
 # Returns whether a peer is connected or not.
 func is_peer_connected(steam_id) -> bool:
