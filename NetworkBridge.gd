@@ -15,7 +15,7 @@ onready var SteamInit = Global.get_node("Multiplayer/SteamInit")
 onready var SteamNetwork = Global.get_node("Multiplayer/SteamInit/SteamNetwork")
 onready var SteamLobby = Global.get_node("Multiplayer/SteamInit/SteamLobby")
 
-var debug = true
+var debug = false
 
 var rpc_debug_list = {}
 var rset_debug_list = {}
@@ -96,17 +96,30 @@ func n_is_network_master(node):
 		MULTIPLAYER_TYPE.STEAM:
 			return SteamNetwork.is_server()
 
+# Some nodes register before this node's _ready has run, while the onready vars
+# are still null. Calling a method on null segfaults in release builds, so look
+# SteamNetwork up directly; registering only fills its table, which is safe this early
+func _get_steam_network():
+	if SteamNetwork == null:
+		SteamNetwork = Global.get_node_or_null("Multiplayer/SteamInit/SteamNetwork")
+	return SteamNetwork
+
 func check_rpc(caller : Node, method = ""):
-	return SteamNetwork.check_permission_hash(caller, method)
+	var network = _get_steam_network()
+	return network != null and network.check_permission_hash(caller, method)
 
 # Registration only fills a lookup table, so it doesn't need Steam to be logged in.
 # Skipping it made check_rpc fail forever, and physics objects re-registered
 # (and printed) every few frames as a result
 func register_rpcs(caller : Node, args):
-	SteamNetwork.register_rpcs(caller, args)
+	var network = _get_steam_network()
+	if network != null:
+		network.register_rpcs(caller, args)
 
 func register_rset(caller : Node, method, recived_permission):
-	SteamNetwork.register_rset(caller, method, recived_permission)
+	var network = _get_steam_network()
+	if network != null:
+		network.register_rset(caller, method, recived_permission)
 
 func n_rpc(caller : Node, method = null, args = []):
 	if method == null:
