@@ -402,7 +402,7 @@ func _physics_process(delta):
 					particle_node.hide()
 			velocity.y -= gravity * delta
 		else:
-			global_transform = global_transform.interpolate_with(lerp_transform, delta * 10.0)
+			NetworkBridge.approach_transform(self, lerp_transform, delta)
 
 func align_up(node_basis, normal)->Basis:
 	var result = Basis()

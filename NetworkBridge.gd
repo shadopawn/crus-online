@@ -104,6 +104,25 @@ func _get_steam_network():
 		SteamNetwork = Global.get_node_or_null("Multiplayer/SteamInit/SteamNetwork")
 	return SteamNetwork
 
+# Setting global_transform updates the physics server and every child node even
+# when nothing moved, and puppets used to do it every frame forever (every NPC,
+# and every gib and prop ever spawned). Only move while catching up with the
+# synced transform, then snap onto it and stop until the next update arrives
+func approach_transform(node : Spatial, target : Transform, delta : float):
+	var current = node.global_transform
+	if _transforms_close(current, target):
+		return
+	var next = current.interpolate_with(target, delta * 10.0)
+	if _transforms_close(next, target):
+		next = target
+	node.global_transform = next
+
+func _transforms_close(a : Transform, b : Transform) -> bool:
+	return a.origin.distance_squared_to(b.origin) < 0.000001 \
+		and a.basis.x.distance_squared_to(b.basis.x) < 0.000001 \
+		and a.basis.y.distance_squared_to(b.basis.y) < 0.000001 \
+		and a.basis.z.distance_squared_to(b.basis.z) < 0.000001
+
 func check_rpc(caller : Node, method = ""):
 	var network = _get_steam_network()
 	return network != null and network.check_permission_hash(caller, method)
