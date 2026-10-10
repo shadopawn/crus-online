@@ -427,6 +427,20 @@ func hold(item):
 		
 	holding = true
 
+# Enemy hitboxes take add_velocity(amount, normal), while bodies take a single
+# velocity vector that pushes away from the normal. Physics objects are left out:
+# damage() already knocks them back
+func push_collider(collider, amount, normal):
+	if not collider.has_method("add_velocity") or collider.has_method("physics_object"):
+		return
+	for method in collider.get_method_list():
+		if method.name == "add_velocity":
+			if method.args.size() >= 2:
+				collider.add_velocity(amount, normal)
+			else:
+				collider.add_velocity(normal * amount)
+			return
+
 
 func _input(event):
 	if glob.implants.arm_implant.regen_ammo:
@@ -956,8 +970,7 @@ func _process(delta)->void :
 							collider.destroy(col_n, col_p)
 						elif collider.has_method("damage"):
 							collider.damage(kick_damage, col_n, col_p, global_transform.origin)
-						if collider.has_method("add_velocity"):
-							collider.add_velocity(40, col_n)
+						push_collider(collider, 40, col_n)
 			kickflag = false
 		if Input.is_action_just_pressed("Tertiary_Weapon") and not item_consumed:
 			if glob.implants.arm_implant.grapple:
@@ -1484,8 +1497,7 @@ func blackjack_timeout():
 				glob.player.player_view.fov *= 1.02
 				if col.has_method("tranq_timeout"):
 					col.tranq_timeout(false)
-				if col.has_method("add_velocity"):
-					col.add_velocity(5, col_n)
+				push_collider(col, 5, col_n)
 	elif current_weapon == W_ROD:
 		if fishing_hook != null:
 			if fishing_hook.fish_caught:
