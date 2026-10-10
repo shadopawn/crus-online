@@ -142,7 +142,12 @@ func n_rpc_unreliable(caller : Node, method = null, args = []):
 			#caller.rpc_unreliable(method, get_tree().network_peer.get_unique_id(), args)
 			Multiplayer.packages_count += 1
 		MULTIPLAYER_TYPE.STEAM:
-			n_rpc(caller, method, args)
+			add_rpc_to_debug_list(caller, method)
+			Multiplayer.packages_count += 1
+			if SteamNetwork.is_server():
+				SteamNetwork.rpc_all_clients(caller, method, args, false)
+			else:
+				SteamNetwork.rpc_on_server(caller, method, args, false)
 
 func n_rpc_id(caller : Node, id = 0, method = null, args = []):
 	if method == null:
@@ -177,7 +182,12 @@ func n_rpc_unreliable_id(caller : Node, id = 0, method = null, args = []):
 			#caller.rpc_unreliable_id(id, method, get_tree().network_peer.get_unique_id(), args)
 			Multiplayer.packages_count += 1
 		MULTIPLAYER_TYPE.STEAM:
-			n_rpc_id(caller, id, method, args)
+			add_rpc_to_debug_list(caller, method)
+			Multiplayer.packages_count += 1
+			if SteamNetwork.is_server():
+				SteamNetwork.rpc_on_client(int(id), caller, method, args, false)
+			else:
+				SteamNetwork.rpc_on_server(caller, method, args, false)
 
 func n_rset(caller : Node, method = null, recived_value = null):
 	if method == null:
@@ -205,4 +215,4 @@ func n_rset_unreliable(caller : Node, method = null, recived_value = null):
 			caller.rset_unreliable(method, recived_value)
 		MULTIPLAYER_TYPE.STEAM:
 			add_rset_to_debug_list(caller, method)
-			SteamNetwork.remote_set(caller, method, recived_value)
+			SteamNetwork.remote_set(caller, method, recived_value, false)

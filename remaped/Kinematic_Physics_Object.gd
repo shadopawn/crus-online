@@ -220,8 +220,8 @@ func _ready()->void :
 		NetworkBridge.n_rpc(self, "_get_transform")
 
 master func _get_transform(id):
-	NetworkBridge.n_rset_unreliable(self, "lerp_transform", lerp_transform)
-	NetworkBridge.n_rset_unreliable(self, "global_transform", global_transform)
+	NetworkBridge.n_rset(self, "lerp_transform", lerp_transform)
+	NetworkBridge.n_rset(self, "global_transform", global_transform)
 
 master func set_network_transform(id, recivedTransform, only_origin = false):
 	if NetworkBridge.n_is_network_master(self):
@@ -393,6 +393,9 @@ func _physics_process(delta):
 			if collision and t >= 200 and not player_head:
 				if not stay_active:
 					finished = true
+					# Position updates are unreliable, so make sure clients get where it came to rest
+					last_transform = global_transform
+					NetworkBridge.n_rpc(self, "client_set_lerp_transform", [global_transform])
 				if particle:
 					particle_node.emitting = false
 					particle_node.hide()

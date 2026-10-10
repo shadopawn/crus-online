@@ -69,29 +69,29 @@ func clear_node_path_cache():
 
 # CLIENTS AND SERVER
 # Calls this method on the server
-func rpc_on_server(caller: Node, method: String, args: Array = []):
-	_rpc(get_server_steam_id(), caller, method, args)
+func rpc_on_server(caller: Node, method: String, args: Array = [], reliable: bool = true):
+	_rpc(get_server_steam_id(), caller, method, args, reliable)
 
 # SERVER ONLY
 # Calls this method on the client specified
-func rpc_on_client(to_peer_id: int, caller: Node, method: String, args: Array = []):
+func rpc_on_client(to_peer_id: int, caller: Node, method: String, args: Array = [], reliable: bool = true):
 	if not is_server():
 		push_warning("Tried to call RPC on client: %s %s" % [caller, method])
 		return
-	_rpc(to_peer_id, caller, method, args)
+	_rpc(to_peer_id, caller, method, args, reliable)
 
 # SERVER ONLY
 # Calls this method on ALL clients connected
-func rpc_all_clients(caller: Node, method: String, args: Array = []):
+func rpc_all_clients(caller: Node, method: String, args: Array = [], reliable: bool = true):
 	for peer_id in _peers:
 		if peer_id != _my_steam_id:
-			rpc_on_client(peer_id, caller, method, args)
+			rpc_on_client(peer_id, caller, method, args, reliable)
 
 # SERVER ONLY (OWNERSHIP TBD)
-func remote_set(caller: Node, property: String, value):
+func remote_set(caller: Node, property: String, value, reliable: bool = true):
 	# probably need to check basic ownership here, but for now its server only
 	for peer in _peers.values(): 
-		_rset(peer, caller, property, value)
+		_rset(peer, caller, property, value, reliable)
 
 # Returns whether a peer is connected or not.
 func is_peer_connected(steam_id) -> bool:
@@ -192,7 +192,7 @@ func _migrate_host(old_owner_id, new_owner_id):
 				_peers[steam_id].connected = true
 			
 
-func _rpc(to_peer_id: int, node: Node, method: String, args: Array):
+func _rpc(to_peer_id: int, node: Node, method: String, args: Array, reliable: bool = true):
 	var to_peer = get_peer(to_peer_id)
 	if to_peer == null:
 		push_warning("Cannot send an RPC to a null peer. Check youre completed connected to the network first")
@@ -232,9 +232,9 @@ func _rpc(to_peer_id: int, node: Node, method: String, args: Array):
 	var serialized_payload = var2bytes(payload)
 	
 	packet.append_array(serialized_payload)
-	_send_p2p_packet(to_peer.steam_id, packet)
+	_send_p2p_packet(to_peer.steam_id, packet, _get_send_type(packet, reliable))
 
-func _rset(to_peer, node: Node, property: String, value):
+func _rset(to_peer, node: Node, property: String, value, reliable: bool = true):
 	var node_path = _get_rset_property_path(node.get_path(), property)
 	var path_cache_index = _get_path_cache(node_path)
 	if path_cache_index == -1 and is_server():
@@ -256,7 +256,7 @@ func _rset(to_peer, node: Node, property: String, value):
 	
 	var serialized_payload = var2bytes(payload)
 	packet.append_array(serialized_payload)
-	_send_p2p_packet(to_peer.steam_id, packet)
+	_send_p2p_packet(to_peer.steam_id, packet, _get_send_type(packet, reliable))
 
 func _get_rset_property_path(node_path: NodePath, property: String):
 	return NodePath("%s:%s" % [node_path, property])
@@ -359,6 +359,14 @@ func _send_p2p_command_packet(steam_id, packet_type: int, arg = null):
 		payload.append_array(var2bytes(arg))
 	if not _send_p2p_packet(steam_id, payload):
 		push_error("Failed to send command packet %s" % packet_type)
+
+# Steam drops unreliable P2P packets larger than this, so send those reliably
+const MAX_UNRELIABLE_PACKET_SIZE = 1200
+
+func _get_send_type(packet: PoolByteArray, reliable: bool) -> int:
+	if reliable or packet.size() > MAX_UNRELIABLE_PACKET_SIZE:
+		return SteamInit.Steam.P2P_SEND_RELIABLE
+	return SteamInit.Steam.P2P_SEND_UNRELIABLE
 
 func _send_p2p_packet(steam_id, data: PoolByteArray, send_type: int = SteamInit.Steam.P2P_SEND_RELIABLE, channel: int = 0) -> bool:
 	return SteamInit.Steam.sendP2PPacket(steam_id, data, send_type, channel)
