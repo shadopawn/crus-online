@@ -99,15 +99,14 @@ func n_is_network_master(node):
 func check_rpc(caller : Node, method = ""):
 	return SteamNetwork.check_permission_hash(caller, method)
 
+# Registration only fills a lookup table, so it doesn't need Steam to be logged in.
+# Skipping it made check_rpc fail forever, and physics objects re-registered
+# (and printed) every few frames as a result
 func register_rpcs(caller : Node, args):
-	if SteamInit.is_online:
-		SteamNetwork.register_rpcs(caller, args)
-	else:
-		print(caller, args)
+	SteamNetwork.register_rpcs(caller, args)
 
 func register_rset(caller : Node, method, recived_permission):
-	if SteamInit.is_online:
-		SteamNetwork.register_rset(caller, method, recived_permission)
+	SteamNetwork.register_rset(caller, method, recived_permission)
 
 func n_rpc(caller : Node, method = null, args = []):
 	if method == null:
