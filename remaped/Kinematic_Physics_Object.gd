@@ -52,6 +52,11 @@ var first_col = true
 
 var change_transform = true
 
+# Objects that fall this long without touching anything have left the level
+# and would otherwise keep falling (and syncing) forever
+const MAX_AIRBORNE_TIME = 10.0
+var airborne_time = 0.0
+
 onready var Multiplayer = Global.get_node("Multiplayer")
 
 ################################################################################
@@ -97,6 +102,11 @@ puppet func _remove(id):
 	
 	set_process(false)
 	set_physics_process(false)
+
+func remove_from_world():
+	if NetworkBridge.check_connection() and NetworkBridge.n_is_network_master(self):
+		NetworkBridge.n_rpc(self, "_remove")
+		_remove(null)
 
 func syncUpdate():
 	if gun != null:
@@ -335,6 +345,14 @@ func _physics_process(delta):
 				rotation = rot_changed
 			
 			var collision = move_and_collide(velocity * delta)
+
+			if collision or held:
+				airborne_time = 0.0
+			else:
+				airborne_time += delta
+				if airborne_time > MAX_AIRBORNE_TIME:
+					remove_from_world()
+					return
 
 			if collision and alerter and velocity.length() > 7:
 				sphere_collision.disabled = false
