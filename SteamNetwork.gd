@@ -362,18 +362,24 @@ func _send_p2p_command_packet(steam_id, packet_type: int, arg = null):
 	if not _send_p2p_packet(steam_id, payload):
 		push_error("Failed to send command packet %s" % packet_type)
 
+# Steamworks EP2PSend values. The GDNative GodotSteam build the game ships doesn't
+# expose its constants: Steam.P2P_SEND_RELIABLE is silently null in release builds,
+# and passing that to a typed int parameter silently skips the call entirely
+const P2P_SEND_UNRELIABLE = 0
+const P2P_SEND_RELIABLE = 2
+
 # Steam drops unreliable P2P packets larger than this, so send those reliably
 const MAX_UNRELIABLE_PACKET_SIZE = 1200
 
 func _get_send_type(packet: PoolByteArray, reliable: bool) -> int:
 	if reliable or packet.size() > MAX_UNRELIABLE_PACKET_SIZE:
-		return SteamInit.Steam.P2P_SEND_RELIABLE
-	return SteamInit.Steam.P2P_SEND_UNRELIABLE
+		return P2P_SEND_RELIABLE
+	return P2P_SEND_UNRELIABLE
 
-func _send_p2p_packet(steam_id, data: PoolByteArray, send_type: int = SteamInit.Steam.P2P_SEND_RELIABLE, channel: int = 0) -> bool:
+func _send_p2p_packet(steam_id, data: PoolByteArray, send_type: int = P2P_SEND_RELIABLE, channel: int = 0) -> bool:
 	return SteamInit.Steam.sendP2PPacket(steam_id, data, send_type, channel)
 
-func _broadcast_p2p_packet(data: PoolByteArray, send_type: int = SteamInit.Steam.P2P_SEND_RELIABLE, channel: int = 0):
+func _broadcast_p2p_packet(data: PoolByteArray, send_type: int = P2P_SEND_RELIABLE, channel: int = 0):
 	for peer_id in _peers:
 		if peer_id != _my_steam_id:
 			_send_p2p_packet(peer_id, data, send_type, channel)
