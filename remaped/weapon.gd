@@ -721,7 +721,7 @@ func _process(delta)->void :
 					held_object.set_hold_collision(false)
 					use_ray.remove_exception(held_object)
 					
-					held_object.set_drop_object()
+					held_object.set_drop_object(null)
 					NetworkBridge.n_rpc(held_object, "set_drop_object")
 #				else:
 #					if "soul" in held_object:
@@ -749,16 +749,16 @@ func _process(delta)->void :
 					held_object.set_hold_collision(false)
 					use_ray.remove_exception(held_object)
 					
-					held_object.set_drop_object()
+					held_object.set_drop_object(null)
 					NetworkBridge.n_rpc(held_object, "set_drop_object")
-					
+
 					var calculatedVelocity
 					if "mass" in held_object:
 						calculatedVelocity = (20 + glob.implants.arm_implant.throw_bonus - held_object.mass) * (global_transform.origin - hold_pos.global_transform.origin).normalized()
 					else :
 						calculatedVelocity = (20 + glob.implants.arm_implant.throw_bonus) * (global_transform.origin - hold_pos.global_transform.origin).normalized()
-					held_object.velocity += glob.player.player_velocity
-					NetworkBridge.n_rset(held_object, "velocity", [held_object.velocity + glob.player.player_velocity - calculatedVelocity])
+					# Applied on the host, which simulates the object; a client's call is forwarded there
+					held_object.add_velocity(glob.player.player_velocity - calculatedVelocity)
 #				else:
 #					if "alerter" in held_object:
 #						held_object.alerter = true

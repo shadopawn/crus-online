@@ -141,6 +141,7 @@ func register_all_rpcs():
 		["_get_transform", NetworkBridge.PERMISSION.ALL],
 		["set_network_transform", NetworkBridge.PERMISSION.ALL],
 		["add_velocity", NetworkBridge.PERMISSION.ALL],
+		["network_add_velocity", NetworkBridge.PERMISSION.ALL],
 		["_sync_vars", NetworkBridge.PERMISSION.ALL],
 		["_set_grill", NetworkBridge.PERMISSION.ALL],
 		["_spawn_fake_gas", NetworkBridge.PERMISSION.ALL],
